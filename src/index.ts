@@ -1,6 +1,10 @@
-import zipZones from './data/zip-zones.json';
+import data from './data/zip-zones.json';
 
-const zones: Record<string, string> = zipZones;
+// zips: zip -> [zone, stateAbbr | null]
+const { states, zips } = data as unknown as {
+	states: Record<string, string>;
+	zips: Record<string, [string, string | null]>;
+};
 
 const ZONE_ROUTE = /^\/api\/zone\/([^/]+)$/;
 const ZIP_PATTERN = /^\d{5}$/;
@@ -46,14 +50,22 @@ export default {
 				return json(request, { error: 'Invalid zip' }, 400);
 			}
 
-			const zone = zones[zip];
-			if (!zone) {
+			const entry = zips[zip];
+			if (!entry) {
 				return json(request, { error: 'Zip not found' }, 404, 'public, max-age=3600');
 			}
 
+			const [zone, stateAbbr] = entry;
 			return json(
 				request,
-				{ zip, zone, zoneNumber: parseInt(zone, 10), zoneLetter: zone.slice(-1) },
+				{
+					zip,
+					zone,
+					zoneNumber: parseInt(zone, 10),
+					zoneLetter: zone.slice(-1),
+					state: stateAbbr ? states[stateAbbr] : null,
+					stateAbbr,
+				},
 				200,
 				'public, max-age=86400',
 			);

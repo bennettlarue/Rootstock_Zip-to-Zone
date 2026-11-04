@@ -7,12 +7,42 @@ describe('GET /api/zone/:zip', () => {
 	it('returns the zone and parsed parts for a known zip', async () => {
 		const response = await get('/api/zone/01002');
 		expect(response.status).toBe(200);
-		expect(await response.json()).toEqual({ zip: '01002', zone: '6a', zoneNumber: 6, zoneLetter: 'a' });
+		expect(await response.json()).toEqual({
+			zip: '01002',
+			zone: '6a',
+			zoneNumber: 6,
+			zoneLetter: 'a',
+			state: 'Massachusetts',
+			stateAbbr: 'MA',
+		});
 	});
 
-	it('preserves leading zeros and parses two-digit zones', async () => {
+	it('parses two-digit zones', async () => {
+		const response = await get('/api/zone/90210');
+		expect(await response.json()).toMatchObject({ zone: '10b', zoneNumber: 10, zoneLetter: 'b', stateAbbr: 'CA', state: 'California' });
+	});
+
+	it('infers the state for zips missing from the geo data', async () => {
+		const response = await get('/api/zone/01003');
+		expect(await response.json()).toMatchObject({ stateAbbr: 'MA', state: 'Massachusetts' });
+	});
+
+	it('returns a null state when it cannot be determined', async () => {
 		const response = await get('/api/zone/00501');
-		expect(await response.json()).toEqual({ zip: '00501', zone: '7b', zoneNumber: 7, zoneLetter: 'b' });
+		expect(response.status).toBe(200);
+		expect(await response.json()).toEqual({
+			zip: '00501',
+			zone: '7b',
+			zoneNumber: 7,
+			zoneLetter: 'b',
+			state: null,
+			stateAbbr: null,
+		});
+	});
+
+	it('picks one state for zips that straddle a border', async () => {
+		const response = await get('/api/zone/38852');
+		expect(await response.json()).toMatchObject({ stateAbbr: 'AL', state: 'Alabama' });
 	});
 
 	it('sets a long public cache on success', async () => {
